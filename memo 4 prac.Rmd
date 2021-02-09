@@ -1,0 +1,122 @@
+---
+title: "Memo 4 coding"
+author: "Maliat"
+date: "9/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(haven)
+library(magrittr)
+library(sjmisc)
+library(foreign)
+library(expss)
+library(descr)
+```
+```{r}
+WLS_educ <- read_dta("C:/Users/malia/Downloads/WLS_educ.dta")
+WLS_health <- read_dta("C:/Users/malia/Downloads/WLS_health.dta")
+
+```
+
+```{r}
+glimpse(WLS_educ)
+glimpse(WLS_health)
+```
+```{r}
+WLS<- cbind(WLS_educ,WLS_health)%>%
+  select(brdxdy,sexrsp,spouse_edu,resp_edu,health)
+glimpse(WLS)
+```
+
+###part 1 educational observational mating
+```{r}
+WLS <- WLS %>%
+  mutate (
+    r_edu = case_when(
+      resp_edu ==12 ~ "1 HS or Less",
+      resp_edu >= 13 & resp_edu <16 ~ "2 Some College",
+      resp_edu >=16 & resp_edu ~ "3 BA or more"),
+    sp_edu = case_when (
+      spouse_edu == 12 ~ "1 HS or Less",
+      spouse_edu >=13 & spouse_edu < 16 ~ "2 Some College",
+      spouse_edu >=16 ~ "3 BA or more"))
+
+
+```
+#crosstabulation
+
+```{r}
+
+table(WLS$r_edu, WLS$sp_edu) #basic cross tabulation of frequencies
+
+prop.table(table(WLS$r_edu, WLS$sp_edu), 1)
+chisq.test(WLS$r_edu, WLS$sp_edu)
+
+crosstab(WLS$r_edu, WLS$sp_edu, prop.r = T, chisq = T, dnn=c("Respondent's education", "Spouse's education"))
+
+
+
+```
+```{r}
+
+WLS <- WLS %>% 
+  mutate(
+    homogamous = ifelse(r_edu == sp_edu, 1, 0 ),
+    hypergamous = ifelse(sexrsp == 1 & r_edu > sp_edu | sexrsp == 2 & r_edu < sp_edu, 1, 0),
+    hypogamous = ifelse(sexrsp == 2 & r_edu > sp_edu | sexrsp == 1 & r_edu < sp_edu, 1, 0),
+    marriage_type = case_when(
+    homogamous==1 ~ "1 Homogamous",
+    hypergamous==1 ~ "2 Hypergamous",
+    hypogamous==1 ~ "3 Hypogamous"
+  ))
+
+#freq(WLS$homogamous)
+#freq(WLS$hypergamous)
+#freq(WLS$hypogamous)
+freq(WLS$marriage_type)
+#table(WLS$marriage_type, WLS$homogamous)
+#table(WLS$marriage_type, WLS$hypergamous)
+#table(WLS$marriage_type, WLS$hypogamous)
+```
+##part2Assessing the relationship between educational assortative mating and
+self-rated health.
+```{r}
+WLS <- WLS %>%
+  mutate(
+    r_edu = case_when(
+      resp_edu ==12 ~ "1 HS or Less",
+      resp_edu >= 13 & resp_edu <16 ~ "2 Some College",
+      resp_edu >=16 & resp_edu ~ "3 BA or more"),
+    health.1 = case_when(
+      health == 1 ~ "1 Fair/Worse",
+      health == 2 ~ "2 Good",
+      health == 3 ~ "3 Very Good",
+      health == 4 ~ "4 Excellent"))
+crosstab(WLS$r_edu, WLS$health.1, prop.r = T, chisq = T, dnn=c("Education level", "Self-rated health"))
+```
+
+
+
+```{r}
+WLS <- WLS %>% 
+  mutate(
+    homogamous = ifelse(r_edu == sp_edu, 1, 0 ),
+    hypergamous = ifelse(sexrsp == 1 & r_edu > sp_edu | sexrsp == 2 & r_edu < sp_edu, 1, 0),
+    hypogamous = ifelse(sexrsp == 2 & r_edu > sp_edu | sexrsp == 1 & r_edu < sp_edu, 1, 0),
+    marriage_type = case_when(
+    homogamous==1 ~ "1 Homogamous",
+    hypergamous==1 ~ "2 Hypergamous",
+    hypogamous==1 ~ "3 Hypogamous"),
+    health.1 = case_when(
+      health == 1 ~ "1 Fair/Worse",
+      health == 2 ~ "2 Good",
+      health == 3 ~ "3 Very Good",
+      health == 4 ~ "4 Excellent"))
+crosstab(WLS$marriage_type, WLS$health.1, prop.r = T, chisq = T, dnn=c("Marriage Type", "Self-rated health"))
+```
